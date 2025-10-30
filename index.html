@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Modular JSON Viewer & Formatter</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Roboto, sans-serif;
+      background: #f3f4f6;
+      color: #111827;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    h1 {
+      margin-top: 30px;
+      color: #1e3a8a;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    }
+
+    .container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      padding: 20px;
+      width: 95%;
+      max-width: 900px;
+      margin: 20px auto;
+    }
+
+    textarea {
+      width: 100%;
+      height: 300px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 10px;
+      font-family: "Consolas", monospace;
+      font-size: 14px;
+      resize: vertical;
+      background: #f9fafb;
+    }
+
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 15px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+      transform: scale(1.03);
+    }
+
+    #decrementInput {
+      width: 100px;
+      padding: 8px;
+      font-size: 15px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+
+    pre {
+      background: #0f172a;
+      color: #f8fafc;
+      border-radius: 10px;
+      padding: 15px;
+      overflow-x: auto;
+      font-size: 14px;
+      margin-top: 20px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+  </style>
+</head>
+<body>
+  <h1>Modular JSON Viewer & Formatter</h1>
+  <div class="container">
+    <textarea id="jsonInput" placeholder="Paste your JSON here..."></textarea>
+
+    <div class="buttons">
+      <button id="formatBtn">Format</button>
+      <button id="mapBtn">Map MEVTCNT ➜ 470X</button>
+      <button id="removeBtn">Remove MEVTCNT</button>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <label for="decrementInput">Decrement:</label>
+        <input type="number" id="decrementInput" value="50" />
+        <button id="decrementBtn">Apply</button>
+      </div>
+      <button id="clearBtn" style="background:#dc2626;">Clear</button>
+    </div>
+
+    <pre id="output"></pre>
+  </div>
+
+  <script>
+    const jsonInput = document.getElementById("jsonInput");
+    const output = document.getElementById("output");
+    const formatBtn = document.getElementById("formatBtn");
+    const mapBtn = document.getElementById("mapBtn");
+    const removeBtn = document.getElementById("removeBtn");
+    const decrementBtn = document.getElementById("decrementBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const decrementInput = document.getElementById("decrementInput");
+
+    function deepClone(obj) {
+      return JSON.parse(JSON.stringify(obj));
+    }
+
+    // --- Feature 1: Map MEVTCNT → 470X ---
+    function mapMevtTo470(obj) {
+      if (obj === null || typeof obj !== 'object') return obj;
+      const copy = deepClone(obj);
+
+      Object.keys(copy).forEach(k => {
+        const m = k.match(/^MEVTCNT(\d+)$/i);
+        if (m) {
+          const idx = Number(m[1]);
+          const key = "47" + String(idx * 2 - 1).padStart(2, "0");
+          copy[key] = copy[k];
+        }
+      });
+
+      return copy;
+    }
+
+    // --- Feature 2: Remove all MEVTCNT keys ---
+    function removeMevt(obj) {
+      if (obj === null || typeof obj !== 'object') return obj;
+      const copy = deepClone(obj);
+      Object.keys(copy).forEach(k => {
+        if (/^MEVTCNT\d+$/i.test(k)) delete copy[k];
+      });
+      return copy;
+    }
+
+    // --- Feature 3: Decrement all numeric values by user input ---
+    function decrementValues(obj, val) {
+      if (obj === null || typeof obj !== 'object') return obj;
+      const copy = deepClone(obj);
+      Object.keys(copy).forEach(k => {
+        if (typeof copy[k] === "number") {
+          copy[k] = copy[k] - val;
+        }
+      });
+      return copy;
+    }
+
+    // --- Format JSON output ---
+    function show(obj) {
+      output.textContent = JSON.stringify(obj, null, 2);
+    }
+
+    function parseInput() {
+      try {
+        return JSON.parse(jsonInput.value);
+      } catch {
+        output.textContent = "❌ Invalid JSON! Please check syntax.";
+        return null;
+      }
+    }
+
+    formatBtn.addEventListener("click", () => {
+      const obj = parseInput();
+      if (obj) show(obj);
+    });
+
+    mapBtn.addEventListener("click", () => {
+      const obj = parseInput();
+      if (obj) show(mapMevtTo470(obj));
+    });
+
+    removeBtn.addEventListener("click", () => {
+      const obj = parseInput();
+      if (obj) show(removeMevt(obj));
+    });
+
+    decrementBtn.addEventListener("click", () => {
+      const obj = parseInput();
+      if (obj) {
+        const dec = Number(decrementInput.value) || 0;
+        show(decrementValues(obj, dec));
+      }
+    });
+
+    clearBtn.addEventListener("click", () => {
+      jsonInput.value = "";
+      output.textContent = "";
+    });
+  </script>
+</body>
+</html>

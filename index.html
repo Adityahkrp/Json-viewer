@@ -7,7 +7,7 @@
   <style>
     body {
       font-family: "Segoe UI", Roboto, sans-serif;
-      background: #f3f4f6;
+      background: linear-gradient(135deg, #f8fafc, #e0e7ff);
       color: #111827;
       margin: 0;
       padding: 0;
@@ -21,6 +21,7 @@
       margin-top: 30px;
       color: #1e3a8a;
       text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+      letter-spacing: 0.5px;
     }
 
     .container {
@@ -29,20 +30,31 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       padding: 20px;
       width: 95%;
-      max-width: 900px;
+      max-width: 950px;
       margin: 20px auto;
+      transition: 0.3s ease-in-out;
+    }
+
+    .container:hover {
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
     }
 
     textarea {
       width: 100%;
-      height: 300px;
+      height: 280px;
       border: 1px solid #ccc;
       border-radius: 10px;
-      padding: 10px;
+      padding: 12px;
       font-family: "Consolas", monospace;
       font-size: 14px;
       resize: vertical;
       background: #f9fafb;
+      transition: border-color 0.2s;
+    }
+
+    textarea:focus {
+      border-color: #2563eb;
+      outline: none;
     }
 
     .buttons {
@@ -70,11 +82,17 @@
     }
 
     #decrementInput {
-      width: 100px;
+      width: 90px;
       padding: 8px;
       font-size: 15px;
       border-radius: 8px;
       border: 1px solid #ccc;
+      transition: 0.2s;
+    }
+
+    #decrementInput:focus {
+      border-color: #2563eb;
+      outline: none;
     }
 
     pre {
@@ -87,6 +105,22 @@
       margin-top: 20px;
       white-space: pre-wrap;
       word-break: break-word;
+      min-height: 120px;
+    }
+
+    .footer {
+      font-size: 13px;
+      margin: 20px;
+      color: #4b5563;
+    }
+
+    .footer a {
+      color: #2563eb;
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
@@ -110,6 +144,10 @@
     <pre id="output"></pre>
   </div>
 
+  <div class="footer">
+    ⚙️ Built by Aditya • Use <b>Map → Remove → Apply</b> in sequence for full JSON transformation.
+  </div>
+
   <script>
     const jsonInput = document.getElementById("jsonInput");
     const output = document.getElementById("output");
@@ -120,13 +158,15 @@
     const clearBtn = document.getElementById("clearBtn");
     const decrementInput = document.getElementById("decrementInput");
 
+    let currentData = null; // Store the latest JSON state
+
     function deepClone(obj) {
       return JSON.parse(JSON.stringify(obj));
     }
 
     // --- Feature 1: Map MEVTCNT → 470X ---
     function mapMevtTo470(obj) {
-      if (obj === null || typeof obj !== 'object') return obj;
+      if (obj === null || typeof obj !== "object") return obj;
       const copy = deepClone(obj);
 
       Object.keys(copy).forEach(k => {
@@ -143,7 +183,7 @@
 
     // --- Feature 2: Remove all MEVTCNT keys ---
     function removeMevt(obj) {
-      if (obj === null || typeof obj !== 'object') return obj;
+      if (obj === null || typeof obj !== "object") return obj;
       const copy = deepClone(obj);
       Object.keys(copy).forEach(k => {
         if (/^MEVTCNT\d+$/i.test(k)) delete copy[k];
@@ -151,9 +191,9 @@
       return copy;
     }
 
-    // --- Feature 3: Decrement all numeric values by user input ---
+    // --- Feature 3: Decrement numeric values ---
     function decrementValues(obj, val) {
-      if (obj === null || typeof obj !== 'object') return obj;
+      if (obj === null || typeof obj !== "object") return obj;
       const copy = deepClone(obj);
       Object.keys(copy).forEach(k => {
         if (typeof copy[k] === "number") {
@@ -163,46 +203,52 @@
       return copy;
     }
 
-    // --- Format JSON output ---
+    // --- Display JSON ---
     function show(obj) {
+      currentData = deepClone(obj);
       output.textContent = JSON.stringify(obj, null, 2);
+      jsonInput.value = JSON.stringify(obj, null, 2);
     }
 
     function parseInput() {
       try {
-        return JSON.parse(jsonInput.value);
+        const obj = JSON.parse(jsonInput.value);
+        currentData = deepClone(obj);
+        return obj;
       } catch {
         output.textContent = "❌ Invalid JSON! Please check syntax.";
         return null;
       }
     }
 
+    // --- Event Listeners ---
     formatBtn.addEventListener("click", () => {
       const obj = parseInput();
       if (obj) show(obj);
     });
 
     mapBtn.addEventListener("click", () => {
-      const obj = parseInput();
-      if (obj) show(mapMevtTo470(obj));
+      if (!currentData) parseInput();
+      if (currentData) show(mapMevtTo470(currentData));
     });
 
     removeBtn.addEventListener("click", () => {
-      const obj = parseInput();
-      if (obj) show(removeMevt(obj));
+      if (!currentData) parseInput();
+      if (currentData) show(removeMevt(currentData));
     });
 
     decrementBtn.addEventListener("click", () => {
-      const obj = parseInput();
-      if (obj) {
+      if (!currentData) parseInput();
+      if (currentData) {
         const dec = Number(decrementInput.value) || 0;
-        show(decrementValues(obj, dec));
+        show(decrementValues(currentData, dec));
       }
     });
 
     clearBtn.addEventListener("click", () => {
       jsonInput.value = "";
       output.textContent = "";
+      currentData = null;
     });
   </script>
 </body>
